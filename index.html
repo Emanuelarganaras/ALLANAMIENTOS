@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Documentos Judiciales</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.0.0/docx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .domicilios-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .domicilio-item {
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .domicilio-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Documentos Judiciales</h1>
+        
+        <form id="documentForm">
+            <div class="form-group">
+                <label for="fiscaliaTurno">Número de Fiscalía de Instrucción:</label>
+                <input type="text" id="fiscaliaTurno" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="horario">A partir de qué hora:</label>
+                <input type="text" id="horario" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="numeroSumario">Número de sumario:</label>
+                <input type="text" id="numeroSumario" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="unidadJudicial">Número de Unidad Judicial:</label>
+                <input type="text" id="unidadJudicial" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="habilitacionHoraria">¿Con habilitación horaria?</label>
+                <select id="habilitacionHoraria" required>
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="nombresPolicias">Nombres y cargos de los policías autorizados (separados por comas):</label>
+                <textarea id="nombresPolicias" rows="3" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="esDetencion">¿El allanamiento es para detención?</label>
+                <select id="esDetencion" required>
+                    <option value="no">No</option>
+                    <option value="si">Sí</option>
+                </select>
+            </div>
+            
+            <div id="detencionFields" class="hidden">
+                <div class="form-group">
+                    <label for="fechaDecretoDetencion">Fecha del decreto de detención:</label>
+                    <input type="text" id="fechaDecretoDetencion">
+                </div>
+                
+                <div class="form-group">
+                    <label for="delitosArticulos">Delitos y artículos correspondientes:</label>
+                    <input type="text" id="delitosArticulos">
+                </div>
+                
+                <div class="form-group">
+                    <label for="nombreImputado">Nombre del imputado y DNI:</label>
+                    <input type="text" id="nombreImputado">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="cantidadDomicilios">¿Cuántos domicilios son?</label>
+                <input type="number" id="cantidadDomicilios" min="1" max="10" value="1" required>
+            </div>
+            
+            <div id="domiciliosContainer" class="domicilios-container">
+                <div class="domicilio-item">
+                    <div class="form-group">
+                        <label for="domicilio1">Domicilio completo 1:</label>
+                        <input type="text" id="domicilio1" class="domicilio" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="numeroOrden1">Número de orden para el domicilio 1:</label>
+                        <input type="text" id="numeroOrden1" class="numeroOrden" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="residente1">Nombre del residente en el domicilio 1:</label>
+                        <input type="text" id="residente1" class="residente" required>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" id="generateBtn">Generar Documento</button>
+        </form>
+        
+        <div id="alert" class="alert hidden">Documento generado correctamente</div>
+    </div>
+    
+    <script>
+        // Función para obtener la fecha actual en español
+        function obtenerFechaEspanol() {
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const fecha = new Date();
+            const dia = fecha.getDate();
+            const mes = meses[fecha.getMonth()];
+            const anio = fecha.getFullYear();
+            return `${dia} de ${mes} de ${anio}`;
+        }
+        
+        // Mostrar/ocultar campos de detención
+        document.getElementById('esDetencion').addEventListener('change', function() {
+            const detencionFields = document.getElementById('detencionFields');
+            if (this.value === 'si') {
+                detencionFields.classList.remove('hidden');
+            } else {
+                detencionFields.classList.add('hidden');
+            }
+        });
+        
+        // Manejar cantidad de domicilios
+        document.getElementById('cantidadDomicilios').addEventListener('change', function() {
+            const cantidad = parseInt(this.value);
+            const container = document.getElementById('domiciliosContainer');
+            
+            // Limpiar los domicilios existentes
+            container.innerHTML = '';
+            
+            // Crear nuevos campos de domicilio
+            for (let i = 1; i <= cantidad; i++) {
+                const domicilioDiv = document.createElement('div');
+                domicilioDiv.className = 'domicilio-item';
+                domicilioDiv.innerHTML = `
+                    <div class="form-group">
+                        <label for="domicilio${i}">Domicilio completo ${i}:</label>
+                        <input type="text" id="domicilio${i}" class="domicilio" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="numeroOrden${i}">Número de orden para el domicilio ${i}:</label>
+                        <input type="text" id="numeroOrden${i}" class="numeroOrden" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="residente${i}">Nombre del residente en el domicilio ${i}:</label>
+                        <input type="text" id="residente${i}" class="residente" required>
+                    </div>
+                `;
+                container.appendChild(domicilioDiv);
+            }
+        });
+        
+        // Generar documento DOCX
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            // Recopilar datos del formulario
+            const fiscaliaTurno = document.getElementById('fiscaliaTurno').value;
+            const horario = document.getElementById('horario').value;
+            const numeroSumario = document.getElementById('numeroSumario').value;
+            const unidadJudicial = document.getElementById('unidadJudicial').value;
+            const habilitacionHoraria = document.getElementById('habilitacionHoraria').value;
+            const habilitacionTexto = habilitacionHoraria === 'si' ? 'con' : 'sin';
+            const nombresPolicias = document.getElementById('nombresPolicias').value.split(',');
+            const esDetencion = document.getElementById('esDetencion').value;
+            
+            let parrafoDetencion = '';
+            if (esDetencion === 'si') {
+                const fechaDecretoDetencion = document.getElementById('fechaDecretoDetencion').value;
+                const delitosArticulos = document.getElementById('delitosArticulos').value;
+                const nombreImputado = document.getElementById('nombreImputado').value;
+                parrafoDetencion = ` y a la detención de ${nombreImputado} dispuesta por la fiscalía interviniente el día ${fechaDecretoDetencion} de ${nombreImputado} p.s.a ${delitosArticulos}, conforme lo normado por los arts. 281 y 272 del CPP, y a quien una vez habido se le impondrá el contenido del art. 40 de la Constitución Provincial y concordantes`;
+            }
+            
+            // Recopilar domicilios
+            const cantidadDomicilios = parseInt(document.getElementById('cantidadDomicilios').value);
+            const domicilios = [];
+            
+            for (let i = 1; i <= cantidadDomicilios; i++) {
+                domicilios.push({
+                    domicilio: document.getElementById(`domicilio${i}`).value,
+                    numeroOrden: document.getElementById(`numeroOrden${i}`).value,
+                    residente: document.getElementById(`residente${i}`).value
+                });
+            }
+            
+            // Fecha actual en español
+            const fechaActual = obtenerFechaEspanol();
+            
+            // Crear documento utilizando docx.js
+            const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = docx;
+            
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        // Título con fecha
+                        new Paragraph({
+                            alignment: AlignmentType.RIGHT,
+                            children: [
+                                new TextRun({
+                                    text: `Córdoba, ${fechaActual}.`,
+                                    size: 24
+                                })
+                            ]
+                        }),
+                        
+                        // Texto inicial del decreto
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `A mérito del pedido efectuado por el Ministerio Público Fiscal a partir de lo solicitado por Unidad Judicial ${unidadJudicial}, `,
+                                    bold: true
+                                }),
+                                new TextRun({
+                                    text: `con conocimiento e intervención de la Fiscalía de Instrucción de Violencia Familiar y Género del ${fiscaliaTurno}° Turno y encontrándose reunidos los recaudos de ley (arts. 45 de la Const. Pcial.; 203, 204, 210 y concordantes del C.P.P.);`,
+                                    italics: true
+                                })
+                            ]
+                        }),
+                        
+                        // RESUELVO
+                        new Paragraph({
+                            heading: HeadingLevel.HEADING_1,
+                            children: [
+                                new TextRun({
+                                    text: "RESUELVO:",
+                                    bold: true
+                                })
+                            ]
+                        }),
+                        
+                        // Punto I
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `I) Hacer lugar a lo solicitado, y en su virtud ordenar el allanamiento, ${habilitacionTexto} habilitación horaria, de las siguientes viviendas ubicadas en:`
+                                })
+                            ]
+                        }),
+                        
+                        // Lista de domicilios
+                        ...domicilios.map(domicilio => 
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: `- ${domicilio.domicilio} (residente: ${domicilio.residente})`
+                                    })
+                                ]
+                            })
+                        ),
+                        
+                        // Continuación Punto I con párrafo detención
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `, al sólo efecto de proceder a la identificacion de sus moradores y al secuestro de elementos relacionados con las actuaciones sumariales nro.${numeroSumario} que se labran ante la unidad judicial ${unidadJudicial}${parrafoDetencion}.`
+                                })
+                            ]
+                        }),
+                        
+                        // Punto II
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `II) Autorizar al ${nombresPolicias.join(', ')}, adscriptos de la policía de la Provincia de Córdoba, para que con personal a sus órdenes, en el término de 24 horas, a contar de las ${horario} horas de la fecha, ${habilitacionTexto} habilitación horaria, proceda a cumplimentarlo, quedando facultado para hacer uso de la fuerza pública, en caso de necesidad.`
+                                })
+                            ]
+                        }),
+                        
+                        // Punto III
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: "III) Hecho, vuelva a la Fiscalía requirente, sirviendo el presente de atenta nota de remisión y estilo."
+                                })
+                            ]
+                        }),
+                        
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: "Ante mí:"
+                                })
+                            ]
+                        }),
+                        
+                        // Separador
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: "-----------------------------------------------------------------------------",
+                                })
+                            ]
+                        }),
+                        
+                        // Oficios para cada domicilio
+                        ...domicilios.flatMap(domicilio => [
+                            // Encabezado oficio
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: `Córdoba, ${fechaActual}.`
+                                    })
+                                ]
+                            }),
+                            
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Jefe de Policía de la Provincia de Córdoba"
+                                    })
+                                ]
+                            }),
+                            
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "S________________/_______________D"
+                                    })
+                                ]
+                            }),
+                            
+                            // Contenido oficio
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: `Comunico a Ud. que por resolución del día de la fecha, este Juzgado de Control en Violencia de Género y Familiar N°1 (ex Juzgado de Control 6), Secretaría a cargo de la autorizante, por disposición de SS, se ha resuelto autorizar al `,
+                                        bold: true
+                                    }),
+                                    new TextRun({
+                                        text: `${nombresPolicias.join(', ')}`,
+                                        bold: true
+                                    }),
+                                    new TextRun({
+                                        text: `, para que procedan al allanamiento de la vivienda ubicada en ${domicilio.domicilio} (residente: ${domicilio.residente}), al sólo efecto de proceder a la identificacion de sus moradores y al secuestro de elementos relacionados con las actuaciones sumariales ${numeroSumario} que se labran ante la unidad judicial ${unidadJudicial}${parrafoDetencion}. para que con personal a sus órdenes, en el término de 24 horas, a contar desde las ${horario} horas de la fecha, ${habilitacionTexto} habilitación horaria, proceda a cumplimentarlo, debiendo comunicar el resultado del mismo dentro del término de 24 horas, citando n° ${domicilio.numeroOrden} de orden.`
+                                    })
+                                ]
+                            }),
+                            
+                            // Despedida
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Saludo a Ud. atte."
+                                    })
+                                ]
+                            }),
+                            
+                            // Separador entre oficios
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "-----------------------------------------------------------------------------",
+                                    })
+                                ]
+                            })
+                        ])
+                    ]
+                }]
+            });
+            
+            // Guardar el documento
+            Packer.toBlob(doc).then(blob => {
+                saveAs(blob, "documento_judicial.docx");
+                document.getElementById('alert').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('alert').classList.add('hidden');
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>
